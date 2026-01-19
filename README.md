@@ -1,6 +1,6 @@
-# Welcome to React Router!
+# Welcome to Vue + Vite!
 
-A modern, production-ready template for building full-stack React applications using React Router.
+A modern, production-ready template for building full-stack Vue 3 applications using Vite and Vue Router.
 
 ## Features
 
@@ -10,7 +10,8 @@ A modern, production-ready template for building full-stack React applications u
 - 🔄 Data loading and mutations
 - 🔒 TypeScript by default
 - 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+- 📖 [Vue docs](https://vuejs.org/)
+- 📖 [Vue Router docs](https://router.vuejs.org/)
 
 ## Getting Started
 
@@ -76,4 +77,4 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 
 ---
 
-Built with ❤️ using React Router.
+Built with ❤️ using Vue + Vite.

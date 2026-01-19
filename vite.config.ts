@@ -1,14 +1,16 @@
-import { reactRouter } from "@react-router/dev/vite";
-import { cloudflare } from "@cloudflare/vite-plugin";
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
+import { defineConfig } from "vite"
+import { fileURLToPath } from "node:url"
+import vue from "@vitejs/plugin-vue"
+import tailwindcss from "@tailwindcss/vite"
+import tsconfigPaths from "vite-tsconfig-paths"
+import vueDevTools from "vite-plugin-vue-devtools"
+import { cloudflare } from "@cloudflare/vite-plugin"
 
 export default defineConfig({
-  plugins: [
-    cloudflare({ viteEnvironment: { name: "ssr" } }),
-    tailwindcss(),
-    reactRouter(),
-    tsconfigPaths(),
-  ],
-});
+	plugins: [cloudflare(), vue(), tailwindcss(), tsconfigPaths(), vueDevTools()],
+	resolve: {
+		alias: {
+			"@": fileURLToPath(new URL("./src", import.meta.url)),
+		},
+	},
+})
