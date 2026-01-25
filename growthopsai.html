@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrowthOpsAI | Client Command Center</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            bg: '#0B0C10',
+                            sidebar: '#111318',
+                            card: '#1A1D24',
+                            border: '#272A34'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0B0C10; color: #E5E7EB; }
+        .glass-panel {
+            background: rgba(26, 29, 36, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .scroll-hide::-webkit-scrollbar { display: none; }
+        .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Agent Pulse Animation */
+        .agent-pulse {
+            box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7);
+            animation: pulse-blue 2s infinite;
+        }
+        @keyframes pulse-blue {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(14, 165, 233, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+        }
+        
+        /* Terminal text effect */
+        .typing-effect::after {
+            content: '▋';
+            animation: blink 1s step-start infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Chat Bubbles */
+        .chat-bubble { position: relative; max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.4; }
+        .chat-bubble.user { background-color: #0ea5e9; color: white; border-bottom-right-radius: 2px; margin-left: auto; }
+        .chat-bubble.ai { background-color: #1f2937; color: #e5e7eb; border-bottom-left-radius: 2px; border: 1px solid #374151; }
+        
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #0ea5e9;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #0ea5e9;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden font-sans text-sm">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-dark-sidebar border-r border-dark-border flex flex-col z-20 flex-shrink-0">
+        <!-- Brand -->
+        <div class="h-16 flex items-center px-6 border-b border-dark-border">
+            <div class="w-8 h-8 rounded bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white font-bold mr-3">G</div>
+            <span class="font-bold text-lg tracking-tight text-white">GrowthOps<span class="text-brand-400">AI</span></span>
+        </div>
+
+        <!-- Project Selector -->
+        <div class="p-4">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Current Project</label>
+            <div class="relative group">
+                <button class="w-full bg-dark-card border border-dark-border rounded-lg p-3 flex items-center justify-between hover:border-brand-500/50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                        <span class="font-medium text-white">Grub Vision</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down text-xs text-gray-500"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-3 space-y-1 py-4">
+            <button onclick="switchView('view-dashboard')" data-target="view-dashboard" class="nav-item w-full flex items-center gap-3 px-3 py-2 text-white bg-brand-500/10 border-l-2 border-brand-500 rounded-r-md transition-all">
+                <i class="fa-solid fa-layer-group w-5"></i> Dashboard
+            </button>
+            <button onclick="switchView('view-chat')" data-target="view-chat" class="nav-item w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent rounded-r-md transition-all group">
+                <i class="fa-solid fa-headset w-5 text-brand-400 group-hover:text-white"></i> 
+                Case Manager
+            </button>
+            <button onclick="switchView('view-team')" data-target="view-team" class="nav-item w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent rounded-r-md transition-all">
+                <i class="fa-solid fa-users-viewfinder w-5"></i> My Team
+            </button>
+            <button onclick="switchView('view-orchestration')" data-target="view-orchestration" class="nav-item w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent rounded-r-md transition-all">
+                <i class="fa-solid fa-network-wired w-5"></i> Orchestration
+            </button>
+            <div class="my-2 border-t border-dark-border"></div>
+            <button onclick="switchView('view-approvals')" data-target="view-approvals" class="nav-item w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent rounded-r-md transition-all">
+                <i class="fa-solid fa-inbox w-5"></i> 
+                Approvals 
+                <span class="ml-auto bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+            </button>
+            <button onclick="switchView('view-events')" data-target="view-events" class="nav-item w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent rounded-r-md transition-all">
+                <i class="fa-solid fa-map-location-dot w-5"></i> Event Scout
+            </button>
+            <button onclick="switchView('view-growth')" data-target="view-growth" class="nav-item w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent rounded-r-md transition-all">
+                <i class="fa-solid fa-chart-line w-5"></i> Growth & ROI
+            </button>
+            <button onclick="switchView('view-brand')" data-target="view-brand" class="nav-item w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent rounded-r-md transition-all">
+                <i class="fa-solid fa-book-journal-whills w-5"></i> Brand Bible
+            </button>
+            <button onclick="switchView('view-billing')" data-target="view-billing" class="nav-item w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent rounded-r-md transition-all">
+                <i class="fa-solid fa-file-invoice-dollar w-5"></i> Billing
+            </button>
+        </nav>
+
+        <!-- User/Settings -->
+        <div class="p-4 border-t border-dark-border">
+            <div class="flex items-center gap-3">
+                <img src="https://ui-avatars.com/api/?name=Owner&background=random" class="w-8 h-8 rounded-full border border-gray-600">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate">Owner Account</p>
+                    <p class="text-xs text-gray-500 truncate">admin@growthops.ai</p>
+                </div>
+                <button onclick="switchView('view-settings')" data-target="view-settings" class="nav-item text-gray-400 hover:text-white cursor-pointer transition-colors p-1 rounded hover:bg-white/10" title="Settings">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col bg-dark-bg relative overflow-hidden">
+        
+        <!-- Header -->
+        <header class="h-16 border-b border-dark-border flex items-center justify-between px-8 bg-dark-bg/80 backdrop-blur z-10 flex-shrink-0">
+            <h1 id="page-title" class="text-xl font-bold text-white">Command Center</h1>
+            
+            <div class="flex items-center gap-6">
+                <!-- Status Indicators -->
+                <div class="hidden md:flex items-center gap-4 text-xs font-mono">
+                    <div class="flex items-center gap-2 text-gray-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        <span>API Status: Healthy</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-gray-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                        <span>Next Run: 14m</span>
+                    </div>
+                </div>
+
+                <!-- Kill Switch -->
+                <button onclick="toggleKillSwitch()" id="killSwitchBtn" class="group relative flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 text-red-500 rounded-md transition-all">
+                    <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    <span class="font-bold tracking-wide text-xs uppercase">Global Kill Switch</span>
+                    <div class="absolute inset-0 border border-red-500/50 rounded-md scale-105 opacity-0 group-hover:opacity-100 transition-all"></div>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic View Container -->
+        <div class="flex-1 overflow-y-auto p-8 scroll-hide relative">
+            <div class="max-w-7xl mx-auto h-full">
+
+                <!-- VIEW: DASHBOARD (Default) -->
+                <section id="view-dashboard" class="view-section grid grid-cols-12 gap-6 pb-20">
+                    <!-- 1. Live Agent Workforce (Top Row) -->
+                    <div class="col-span-12">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-semibold text-white">Active Agents</h2>
+                            <button onclick="switchView('view-team')" class="text-xs text-brand-400 hover:text-white">View Full Team <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <!-- Agent Card 1 -->
+                            <div class="glass-panel p-4 rounded-xl border-l-2 border-green-500 relative overflow-hidden group">
+                                <div class="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
+                                    <i class="fa-solid fa-calendar-check text-4xl text-green-500"></i>
+                                </div>
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                    <h3 class="font-bold text-gray-200">Hunter (Events)</h3>
+                                </div>
+                                <p class="text-xs text-gray-400 h-8">Crawling "Tech Meetups Austin"... Found 3 new.</p>
+                                <div class="mt-2 w-full bg-gray-800 rounded-full h-1">
+                                    <div class="bg-green-500 h-1 rounded-full w-3/4"></div>
+                                </div>
+                            </div>
+                            <!-- Agent Card 2 -->
+                            <div class="glass-panel p-4 rounded-xl border-l-2 border-purple-500 relative overflow-hidden group">
+                                <div class="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
+                                    <i class="fa-solid fa-palette text-4xl text-purple-500"></i>
+                                </div>
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+                                    <h3 class="font-bold text-gray-200">Marcus (Creative)</h3>
+                                </div>
+                                <p class="text-xs text-gray-400 h-8">Drafting TikTok script: "Behind the Scenes".</p>
+                                <div class="mt-2 w-full bg-gray-800 rounded-full h-1">
+                                    <div class="bg-purple-500 h-1 rounded-full w-1/2"></div>
+                                </div>
+                            </div>
+                            <!-- Agent Card 3 -->
+                            <div class="glass-panel p-4 rounded-xl border-l-2 border-brand-500 relative overflow-hidden group">
+                                <div class="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
+                                    <i class="fa-solid fa-image text-4xl text-brand-500"></i>
+                                </div>
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></div>
+                                    <h3 class="font-bold text-gray-200">Nano (Artist)</h3>
+                                </div>
+                                <p class="text-xs text-gray-400 h-8">Rendering: "Futuristic Office" (Batch 4).</p>
+                                <div class="mt-2 w-full bg-gray-800 rounded-full h-1">
+                                    <div class="bg-brand-500 h-1 rounded-full w-full animate-pulse"></div>
+                                </div>
+                            </div>
+                            <!-- Agent Card 4 -->
+                            <div class="glass-panel p-4 rounded-xl border-l-2 border-gray-600 opacity-75">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="w-2 h-2 rounded-full bg-gray-600"></div>
+                                    <h3 class="font-bold text-gray-400">Vector (Data)</h3>
+                                </div>
+                                <p class="text-xs text-gray-500 h-8">Sleeping. Next run: Sunday 8:00 AM.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Priority Inbox / Approval Queue (Left Column) -->
+                    <div class="col-span-12 lg:col-span-8">
+                        <div class="glass-panel rounded-xl flex flex-col h-full">
+                            <div class="p-5 border-b border-dark-border flex justify-between items-center">
+                                <div class="flex items-center gap-2">
+                                    <h2 class="text-lg font-bold text-white">Approval Queue</h2>
+                                    <span class="bg-brand-500/20 text-brand-400 text-xs px-2 py-0.5 rounded border border-brand-500/30">Standard Lane</span>
+                                </div>
+                                <button onclick="switchView('view-approvals')" class="text-xs text-brand-400 hover:text-white">View All (3)</button>
+                            </div>
+
+                            <!-- Active Review Item (Snippet) -->
+                            <div class="p-6">
+                                <!-- Context / Strategy Tag -->
+                                <div class="mb-4 flex items-center gap-2">
+                                    <span class="text-xs font-mono text-gray-500 uppercase">Context:</span>
+                                    <span class="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">Campaign: Product Launch</span>
+                                    <span class="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">Platform: X (Twitter)</span>
+                                </div>
+
+                                <!-- The Content -->
+                                <div class="bg-dark-card border border-dark-border rounded-lg p-6 mb-6">
+                                    <div class="flex gap-4">
+                                        <div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0"></div>
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="font-bold text-white">Grub Vision</span>
+                                                <span class="text-gray-500 text-xs">@GrubVision • Draft</span>
+                                            </div>
+                                            <p class="text-gray-300 text-base leading-relaxed mb-4">
+                                                The wait is over. 🚀<br><br>
+                                                Introducing the "Spicy Inferno" bowl. We analyzed 10,000 requests, and this was #1. <br><br>
+                                                Warning: Not for the faint of heart.<br><br>
+                                                Order now: growthops.ai/link <br>
+                                                #GrubVision #SpicyLaunch
+                                            </p>
+                                            <!-- Generated Image Placeholder -->
+                                            <div class="aspect-video w-full bg-gray-800 rounded-lg flex items-center justify-center border border-gray-700 relative overflow-hidden group">
+                                                <img src="https://picsum.photos/seed/spicy/800/400" alt="Generated Content" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                                                <div class="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-[10px] text-white backdrop-blur">
+                                                    Generated by Nano Banana
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Bar -->
+                                <div class="flex gap-4">
+                                    <button class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg shadow-lg shadow-green-500/20 transition-all text-sm">
+                                        <i class="fa-solid fa-check mr-2"></i> Approve
+                                    </button>
+                                    <button onclick="document.getElementById('rejectModal').classList.remove('hidden')" class="px-6 border border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white font-semibold rounded-lg transition-all text-sm">
+                                        Redirect
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Metrics & Logs (Right Column) -->
+                    <div class="col-span-12 lg:col-span-4 space-y-6">
+                        <!-- Growth Chart -->
+                        <div class="glass-panel p-5 rounded-xl">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-white">Growth Outcomes</h3>
+                                <button onclick="switchView('view-growth')" class="text-xs text-brand-400 hover:text-white">Details</button>
+                            </div>
+                            <div class="h-40 relative">
+                                <canvas id="growthChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Audit Log / Terminal -->
+                        <div class="bg-[#0D0E12] border border-dark-border rounded-xl p-4 font-mono text-xs h-64 overflow-hidden flex flex-col">
+                            <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-800">
+                                <span class="text-gray-500">SYSTEM.LOG</span>
+                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                            </div>
+                            <div class="overflow-y-auto space-y-2 text-gray-400 flex-1 scroll-hide" id="auditLog">
+                                <div class="flex gap-2">
+                                    <span class="text-gray-600">[11:42:01]</span>
+                                    <span><span class="text-blue-400">Hunter</span> initialized scan radius: 50mi.</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="text-gray-600">[11:42:15]</span>
+                                    <span><span class="text-purple-400">Marcus</span> rejected Draft #492 (Reason: Generic).</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="text-gray-600">[11:43:00]</span>
+                                    <span><span class="text-yellow-400">System</span> Auto-retry Draft #492 with constraints.</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="text-gray-600">[11:43:45]</span>
+                                    <span><span class="text-brand-400">Nano</span> generated 4 images (Batch 09).</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="text-gray-600">[11:44:10]</span>
+                                    <span><span class="text-red-400">Sentinel</span> Flagged claim "Cures Hunger Instantly".</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="text-gray-600">[11:45:00]</span>
+                                    <span class="text-white typing-effect">Waiting for user input...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: MY TEAM (UPDATED - FULL COMPANY STRUCTURE) -->
+                <section id="view-team" class="view-section hidden pb-20">
+                    <div class="mb-6 flex justify-between items-end">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white mb-2">Company Directory</h2>
+                            <p class="text-gray-400">14 Active Agents | All Departments Online</p>
+                        </div>
+                        <button class="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded border border-gray-600">
+                            <i class="fa-solid fa-download mr-1"></i> Export Org Chart
+                        </button>
+                    </div>
+
+                    <!-- Executive Layer -->
+                    <div class="mb-8">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-800 pb-2">1. Executive Layer</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- CMO -->
+                            <div class="glass-panel p-6 rounded-xl border border-red-900/30 bg-red-900/5">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-full bg-red-800 flex items-center justify-center text-xl font-bold text-white">A</div>
+                                        <div>
+                                            <h3 class="font-bold text-white">Atlas</h3>
+                                            <div class="text-xs text-red-300">Chief Marketing Officer</div>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">Active</span>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono"><i class="fa-solid fa-chess-king mr-2"></i>Analyzing monthly ROI vs Strategy.</div>
+                            </div>
+                            <!-- COO -->
+                            <div class="glass-panel p-6 rounded-xl border border-red-900/30 bg-red-900/5">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-full bg-red-700 flex items-center justify-center text-xl font-bold text-white">N</div>
+                                        <div>
+                                            <h3 class="font-bold text-white">Nexus</h3>
+                                            <div class="text-xs text-red-300">Program Director / COO</div>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">Active</span>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono"><i class="fa-solid fa-sitemap mr-2"></i>Allocating resources to "Creative".</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Client Delivery -->
+                    <div class="mb-8">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-800 pb-2">2. Client Delivery</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Elena (PM) -->
+                            <div class="glass-panel p-6 rounded-xl border border-blue-500/50 bg-blue-900/20 shadow-lg shadow-blue-500/10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-xl font-bold text-white">E</div>
+                                        <div>
+                                            <h3 class="font-bold text-white">Elena</h3>
+                                            <div class="text-xs text-blue-300">Senior Project Manager</div>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">Online</span>
+                                </div>
+                                <div class="bg-dark-card p-3 rounded border border-dark-border mb-3">
+                                    <div class="text-[10px] text-gray-500 uppercase mb-1">Role</div>
+                                    <div class="text-sm text-gray-200">Your primary contact. Manages escalations & deliverables.</div>
+                                </div>
+                                <button onclick="switchView('view-chat')" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold">Message Elena</button>
+                            </div>
+                            <!-- Marcus (Creative Director) -->
+                            <div class="glass-panel p-6 rounded-xl border border-purple-500/30 bg-purple-900/10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-xl font-bold text-white">M</div>
+                                        <div>
+                                            <h3 class="font-bold text-white">Marcus</h3>
+                                            <div class="text-xs text-purple-300">Creative Director</div>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">Reviewing</span>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono"><i class="fa-solid fa-pen-nib mr-2"></i>Enforcing Brand Bible on Draft #493.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Creative Department -->
+                    <div class="mb-8">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-800 pb-2">3. Creative Department</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Copywriter -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-purple-800 flex items-center justify-center font-bold text-white">S</div>
+                                    <div><h3 class="font-bold text-white">Scribe</h3><div class="text-xs text-purple-300">Copy Lead</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono">Drafting X Threads & Emails.</div>
+                            </div>
+                            <!-- Video Lead -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-purple-800 flex items-center justify-center font-bold text-white">D</div>
+                                    <div><h3 class="font-bold text-white">Director X</h3><div class="text-xs text-purple-300">Video Lead</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono">Writing TikTok Scripts & Hooks.</div>
+                            </div>
+                            <!-- Nano (Images) -->
+                            <div class="glass-panel p-6 rounded-xl border border-brand-500/30">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center font-bold text-white">N</div>
+                                    <div><h3 class="font-bold text-white">Nano</h3><div class="text-xs text-brand-300">Image Studio</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono animate-pulse">Rendering Batch #09 (45 imgs)...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Research & Growth -->
+                    <div class="mb-8">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-800 pb-2">4. Research & Growth</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <!-- Vector -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center font-bold text-white">V</div>
+                                    <div><h3 class="font-bold text-white">Vector</h3><div class="text-xs text-gray-400">Growth Analyst</div></div>
+                                </div>
+                                <div class="text-xs text-gray-500">Calculating Attribution.</div>
+                            </div>
+                            <!-- Hunter -->
+                            <div class="glass-panel p-6 rounded-xl border border-green-500/30">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-green-700 flex items-center justify-center font-bold text-white">H</div>
+                                    <div><h3 class="font-bold text-white">Hunter</h3><div class="text-xs text-green-300">Event Scout</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono">Crawling Local Events.</div>
+                            </div>
+                            <!-- Iris -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-teal-700 flex items-center justify-center font-bold text-white">I</div>
+                                    <div><h3 class="font-bold text-white">Iris</h3><div class="text-xs text-teal-300">Creator Research</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono">Scoring Influencer Fit.</div>
+                            </div>
+                            <!-- Hermes -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-teal-700 flex items-center justify-center font-bold text-white">He</div>
+                                    <div><h3 class="font-bold text-white">Hermes</h3><div class="text-xs text-teal-300">Outreach Agent</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono">Sending Follow-ups.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Community & QA -->
+                    <div class="mb-8">
+                         <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-800 pb-2">5. Community & Compliance</h3>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Echo -->
+                             <div class="glass-panel p-6 rounded-xl">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-pink-700 flex items-center justify-center font-bold text-white">Ec</div>
+                                    <div><h3 class="font-bold text-white">Echo</h3><div class="text-xs text-pink-300">Community Mgr</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono">Replying to 12 comments.</div>
+                            </div>
+                            <!-- Sentinel -->
+                             <div class="glass-panel p-6 rounded-xl border border-red-500/30">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-red-700 flex items-center justify-center font-bold text-white">S</div>
+                                    <div><h3 class="font-bold text-white">Sentinel</h3><div class="text-xs text-red-300">QA Officer</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono">Final Reputational Gate.</div>
+                            </div>
+                         </div>
+                    </div>
+
+                    <!-- Finance -->
+                    <div class="mb-8">
+                         <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-800 pb-2">6. Finance Department</h3>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Ledger -->
+                             <div class="glass-panel p-6 rounded-xl">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-yellow-700 flex items-center justify-center font-bold text-white">L</div>
+                                    <div><h3 class="font-bold text-white">Ledger</h3><div class="text-xs text-yellow-300">CFO (AI)</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono">Analyzing Unit Economics.</div>
+                            </div>
+                            <!-- Billie -->
+                             <div class="glass-panel p-6 rounded-xl">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-yellow-700 flex items-center justify-center font-bold text-white">B</div>
+                                    <div><h3 class="font-bold text-white">Billie</h3><div class="text-xs text-yellow-300">Billing & Accounting</div></div>
+                                </div>
+                                <div class="text-xs text-gray-400 font-mono">Generating Invoices.</div>
+                            </div>
+                         </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: CASE MANAGER CHAT (New) -->
+                <section id="view-chat" class="view-section hidden pb-20 h-full flex flex-col">
+                    <div class="flex items-center justify-between mb-4 border-b border-dark-border pb-4">
+                        <div class="flex items-center gap-4">
+                            <div class="relative">
+                                <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-xl font-bold text-white border-2 border-dark-bg">E</div>
+                                <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-dark-bg"></div>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold text-white">Elena</h2>
+                                <p class="text-xs text-blue-400 flex items-center gap-1"><i class="fa-solid fa-shield-halved text-[10px]"></i> Senior Project Manager</p>
+                            </div>
+                        </div>
+                        <div class="text-right text-xs text-gray-500">
+                            <div>Avg Response: <span class="text-green-400">Instant</span></div>
+                            <div>Context: <span class="text-gray-300">Grub Vision</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Area -->
+                    <div class="flex-1 overflow-y-auto space-y-4 mb-4 pr-2 scroll-hide" id="chatHistory">
+                        <!-- Date separator -->
+                        <div class="flex justify-center my-4">
+                            <span class="text-xs text-gray-600 bg-dark-card px-2 py-1 rounded">Today, 10:23 AM</span>
+                        </div>
+
+                        <!-- Messages -->
+                        <div class="chat-bubble user">
+                            We need to push the new Spicy Bowl harder next week. Can we do a special campaign?
+                        </div>
+                        
+                        <div class="flex gap-3 max-w-[85%]">
+                            <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mt-1">E</div>
+                            <div class="space-y-2">
+                                <div class="chat-bubble ai">
+                                    Understood. I've noted the priority on the "Spicy Bowl".
+                                </div>
+                                <div class="bg-dark-card border border-dark-border rounded p-3 text-xs font-mono text-gray-400">
+                                    <div class="flex items-center gap-2 mb-1 text-blue-400 font-bold"><i class="fa-solid fa-share-nodes"></i> Relaying Instructions:</div>
+                                    <div class="pl-4 border-l border-gray-700 space-y-1">
+                                        <div><span class="text-purple-400">@Marcus (Creative):</span> Draft 5 high-energy hooks focusing on "Heat".</div>
+                                        <div><span class="text-brand-400">@Nano (Visuals):</span> Generate visuals with red/orange color palettes.</div>
+                                        <div><span class="text-green-400">@Hunter (Events):</span> Look for "Hot Sauce Festivals" or similar events.</div>
+                                    </div>
+                                </div>
+                                <div class="chat-bubble ai">
+                                    I've dispatched these tasks to the team. You'll see drafts in the Approval Queue by 2 PM.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="mt-auto pt-4 border-t border-dark-border">
+                        <form onsubmit="handleChat(event)" class="relative">
+                            <input type="text" id="chatInput" placeholder="Give instructions to your team..." class="w-full bg-dark-card border border-dark-border text-white rounded-lg pl-4 pr-12 py-4 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder-gray-600">
+                            <button type="submit" class="absolute right-2 top-2 bottom-2 bg-brand-600 hover:bg-brand-500 text-white w-10 rounded-md flex items-center justify-center transition-colors">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </form>
+                        <p class="text-[10px] text-gray-600 mt-2 text-center">Elena relays your instructions to the appropriate autonomous agents.</p>
+                    </div>
+                </section>
+
+                <!-- VIEW: APPROVALS -->
+                <section id="view-approvals" class="view-section hidden pb-20">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex gap-4">
+                            <div class="text-sm font-bold text-white border-b-2 border-brand-500 pb-1 cursor-pointer">All (3)</div>
+                            <div class="text-sm text-gray-500 hover:text-white cursor-pointer">Fast Lane (0)</div>
+                            <div class="text-sm text-gray-500 hover:text-white cursor-pointer">Standard Lane (2)</div>
+                            <div class="text-sm text-gray-500 hover:text-white cursor-pointer">High Risk (1)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Item 1 -->
+                        <div class="glass-panel p-6 rounded-xl flex gap-6 hover:border-gray-500 transition-colors">
+                            <div class="w-1/4">
+                                <div class="aspect-video bg-gray-800 rounded-lg overflow-hidden relative">
+                                    <img src="https://picsum.photos/seed/spicy/400/225" class="w-full h-full object-cover opacity-80">
+                                    <div class="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">X Post</div>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-bold text-lg text-white">Product Launch Thread</h3>
+                                    <span class="px-2 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded text-xs">Standard Lane</span>
+                                </div>
+                                <p class="text-gray-400 text-sm mb-4 line-clamp-2">The wait is over. 🚀 Introducing the "Spicy Inferno" bowl. We analyzed 10,000 requests, and this was #1...</p>
+                                <div class="flex items-center gap-4">
+                                    <button class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-bold">Approve</button>
+                                    <button onclick="document.getElementById('rejectModal').classList.remove('hidden')" class="px-4 py-2 border border-gray-600 text-gray-300 hover:text-white rounded text-xs">Redirect</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div class="glass-panel p-6 rounded-xl flex gap-6 hover:border-gray-500 transition-colors">
+                            <div class="w-1/4">
+                                <div class="aspect-video bg-gray-800 rounded-lg overflow-hidden relative flex items-center justify-center">
+                                    <i class="fa-brands fa-tiktok text-4xl text-gray-600"></i>
+                                    <div class="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">TikTok Script</div>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-bold text-lg text-white">"Behind The Scenes" Skit</h3>
+                                    <span class="px-2 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded text-xs">Standard Lane</span>
+                                </div>
+                                <p class="text-gray-400 text-sm mb-4 line-clamp-2">Hook: "Stop scrolling if you want to see how we make the sauce." Scene 1: Chef chopping peppers. Overlay text...</p>
+                                <div class="flex items-center gap-4">
+                                    <button class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-bold">Approve</button>
+                                    <button onclick="document.getElementById('rejectModal').classList.remove('hidden')" class="px-4 py-2 border border-gray-600 text-gray-300 hover:text-white rounded text-xs">Redirect</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Item 3 -->
+                        <div class="glass-panel p-6 rounded-xl flex gap-6 hover:border-red-500/50 border border-red-500/20 transition-colors">
+                            <div class="w-1/4">
+                                <div class="aspect-video bg-gray-800 rounded-lg overflow-hidden relative flex items-center justify-center">
+                                    <i class="fa-solid fa-file-medical text-4xl text-gray-600"></i>
+                                    <div class="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">Health Claim</div>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-bold text-lg text-white">Nutrition Benefits Post</h3>
+                                    <span class="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs">High Risk Lane</span>
+                                </div>
+                                <p class="text-gray-400 text-sm mb-4 line-clamp-2">Claim: "Our new bowl boosts immunity by 200% instantly." [QA FLAGGED: Needs citation or removal]</p>
+                                <div class="flex items-center gap-4">
+                                    <button class="px-4 py-2 bg-gray-700 text-gray-500 rounded text-xs font-bold cursor-not-allowed" disabled>QA Blocked</button>
+                                    <button onclick="document.getElementById('rejectModal').classList.remove('hidden')" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs">Redirect (Mandatory)</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: EVENT SCOUT -->
+                <section id="view-events" class="view-section hidden pb-20">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white mb-2">Event Scout</h2>
+                            <p class="text-gray-400">Radius: <span class="text-brand-400">50 miles</span> | Source: <span class="text-brand-400">Web Crawl</span></p>
+                        </div>
+                        <button class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded text-xs font-bold"><i class="fa-solid fa-arrows-rotate mr-2"></i>Run Scan</button>
+                    </div>
+
+                    <div class="glass-panel rounded-xl overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-800/50 text-gray-400 uppercase font-mono text-xs">
+                                <tr>
+                                    <th class="p-4">Event Name</th>
+                                    <th class="p-4">Date</th>
+                                    <th class="p-4">Distance</th>
+                                    <th class="p-4">Relevance</th>
+                                    <th class="p-4">Source Link</th>
+                                    <th class="p-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-dark-border text-gray-300">
+                                <tr class="hover:bg-white/5 transition-colors">
+                                    <td class="p-4 font-bold text-white">Austin Food & Tech Expo</td>
+                                    <td class="p-4">Jan 15</td>
+                                    <td class="p-4">12 mi</td>
+                                    <td class="p-4"><span class="text-green-400">High (98%)</span></td>
+                                    <td class="p-4"><a href="#" class="text-brand-400 hover:underline flex items-center gap-1"><i class="fa-solid fa-link text-xs"></i> Visit Site</a></td>
+                                    <td class="p-4 text-right"><button class="px-3 py-1 bg-green-600/20 text-green-400 rounded hover:bg-green-600 hover:text-white transition-colors">Draft Outreach</button></td>
+                                </tr>
+                                <tr class="hover:bg-white/5 transition-colors">
+                                    <td class="p-4 font-bold text-white">StartUp Crawl 2025</td>
+                                    <td class="p-4">Jan 22</td>
+                                    <td class="p-4">4 mi</td>
+                                    <td class="p-4"><span class="text-green-400">High (92%)</span></td>
+                                    <td class="p-4"><a href="#" class="text-brand-400 hover:underline flex items-center gap-1"><i class="fa-solid fa-link text-xs"></i> Visit Site</a></td>
+                                    <td class="p-4 text-right"><button class="px-3 py-1 bg-green-600/20 text-green-400 rounded hover:bg-green-600 hover:text-white transition-colors">Draft Outreach</button></td>
+                                </tr>
+                                <tr class="hover:bg-white/5 transition-colors">
+                                    <td class="p-4 font-bold text-white">Organic Farmer's Market</td>
+                                    <td class="p-4">Every Sat</td>
+                                    <td class="p-4">8 mi</td>
+                                    <td class="p-4"><span class="text-yellow-400">Med (65%)</span></td>
+                                    <td class="p-4"><a href="#" class="text-brand-400 hover:underline flex items-center gap-1"><i class="fa-solid fa-link text-xs"></i> Facebook Page</a></td>
+                                    <td class="p-4 text-right"><button class="px-3 py-1 bg-gray-700 text-gray-400 rounded hover:bg-gray-600 hover:text-white transition-colors">Ignore</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW: GROWTH -->
+                <section id="view-growth" class="view-section hidden pb-20">
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="glass-panel p-6 rounded-xl">
+                            <div class="text-gray-400 text-sm mb-1">Total Revenue</div>
+                            <div class="text-3xl font-bold text-white">$42,590</div>
+                            <div class="text-green-400 text-xs mt-2">▲ 15% vs last month</div>
+                        </div>
+                        <div class="glass-panel p-6 rounded-xl">
+                            <div class="text-gray-400 text-sm mb-1">Active Users</div>
+                            <div class="text-3xl font-bold text-white">12,402</div>
+                            <div class="text-green-400 text-xs mt-2">▲ 12% vs last month</div>
+                        </div>
+                        <div class="glass-panel p-6 rounded-xl">
+                            <div class="text-gray-400 text-sm mb-1">CAC</div>
+                            <div class="text-3xl font-bold text-white">$4.20</div>
+                            <div class="text-green-400 text-xs mt-2">▼ 5% (Improving)</div>
+                        </div>
+                     </div>
+
+                     <div class="glass-panel p-6 rounded-xl h-96 relative">
+                        <h3 class="font-bold text-white mb-6">User Acquisition vs Spend</h3>
+                         <canvas id="growthDetailChart"></canvas>
+                     </div>
+                </section>
+
+                <!-- VIEW: BRAND BIBLE -->
+                <section id="view-brand" class="view-section hidden pb-20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Identity -->
+                        <div>
+                             <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-fingerprint text-brand-400"></i> Core Identity</h3>
+                             <div class="glass-panel p-6 rounded-xl space-y-4">
+                                <div>
+                                    <label class="text-xs text-gray-500 uppercase font-bold">Brand Voice</label>
+                                    <p class="text-gray-200 mt-1">Bold, Direct, slightly reverence but never rude. We are the "Unapologetic Option".</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500 uppercase font-bold">Target Persona</label>
+                                    <p class="text-gray-200 mt-1">Tech-savvy millennials who value speed and flavor over tradition.</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500 uppercase font-bold">Value Prop</label>
+                                    <p class="text-gray-200 mt-1">Restaurant quality food, delivered before you finish the checkout process.</p>
+                                </div>
+                             </div>
+                        </div>
+
+                        <!-- Do / Do Not -->
+                        <div>
+                            <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-traffic-light text-brand-400"></i> Constraints</h3>
+                             <div class="glass-panel p-6 rounded-xl space-y-6">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fa-solid fa-check-circle text-green-500"></i>
+                                        <span class="font-bold text-white">DO SAY</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/30 rounded text-xs">Flavor-first</span>
+                                        <span class="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/30 rounded text-xs">Instant</span>
+                                        <span class="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/30 rounded text-xs">Game-changer</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fa-solid fa-times-circle text-red-500"></i>
+                                        <span class="font-bold text-white">DO NOT SAY</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded text-xs">Cheap</span>
+                                        <span class="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded text-xs">Discount</span>
+                                        <span class="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded text-xs">Traditional</span>
+                                        <span class="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded text-xs">Yummy</span>
+                                    </div>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: BILLING -->
+                <section id="view-billing" class="view-section hidden pb-20">
+                     <div class="max-w-3xl mx-auto bg-white text-gray-900 rounded-lg shadow-2xl overflow-hidden">
+                        <div class="p-8 border-b border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h2 class="text-3xl font-bold text-gray-900">INVOICE</h2>
+                                    <p class="text-gray-500 mt-1">GrowthOpsAI Inc.</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-gray-500">Invoice #: 0042</div>
+                                    <div class="text-sm text-gray-500">Dec 28, 2025</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-8">
+                             <div class="flex justify-between mb-8">
+                                <div>
+                                    <h4 class="font-bold text-xs uppercase text-gray-500 mb-2">Bill To</h4>
+                                    <p class="font-bold">Grub Vision (Internal)</p>
+                                    <p class="text-sm text-gray-600">Owner Account</p>
+                                </div>
+                                <div class="text-right">
+                                    <h4 class="font-bold text-xs uppercase text-gray-500 mb-2">Status</h4>
+                                    <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">PAID (via Discount)</span>
+                                </div>
+                             </div>
+
+                             <table class="w-full text-sm mb-8">
+                                <thead class="bg-gray-50 text-gray-500 uppercase font-mono text-xs">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left">Description</th>
+                                        <th class="py-3 px-4 text-center">Qty/Hours</th>
+                                        <th class="py-3 px-4 text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="py-3 px-4">Creative Studio (Strategy & Copy)</td>
+                                        <td class="py-3 px-4 text-center">12.5 hrs</td>
+                                        <td class="py-3 px-4 text-right font-mono">$698.40</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4">Nano Banana Image Gen</td>
+                                        <td class="py-3 px-4 text-center">45 imgs</td>
+                                        <td class="py-3 px-4 text-right font-mono">$45.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4">Event Scout Web Research</td>
+                                        <td class="py-3 px-4 text-center">8 runs</td>
+                                        <td class="py-3 px-4 text-right font-mono">$120.50</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 px-4">Cloudflare Durable Objects Compute</td>
+                                        <td class="py-3 px-4 text-center">140k req</td>
+                                        <td class="py-3 px-4 text-right font-mono">$12.40</td>
+                                    </tr>
+                                </tbody>
+                             </table>
+
+                             <div class="flex justify-end">
+                                <div class="w-64 space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-600">Subtotal</span>
+                                        <span class="font-mono">$876.30</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm text-green-600 font-bold">
+                                        <span>Owner Discount (100%)</span>
+                                        <span class="font-mono">-$876.30</span>
+                                    </div>
+                                    <div class="flex justify-between text-xl font-bold border-t border-gray-900 pt-4 mt-2">
+                                        <span>Total Due</span>
+                                        <span class="font-mono">$0.00</span>
+                                    </div>
+                                </div>
+                             </div>
+                        </div>
+
+                        <div class="bg-gray-50 p-6 text-center text-xs text-gray-500 border-t border-gray-200">
+                            Thank you for validating our unit economics.
+                        </div>
+                     </div>
+                </section>
+
+                <!-- VIEW: SETTINGS -->
+                <section id="view-settings" class="view-section hidden pb-20">
+                    <div class="max-w-5xl mx-auto space-y-8">
+                        
+                        <!-- Header -->
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Settings</h2>
+                                <p class="text-gray-400 text-sm">Manage projects, integrations, and preferences.</p>
+                            </div>
+                        </div>
+
+                        <!-- Projects Section -->
+                        <div class="glass-panel p-6 rounded-xl">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-briefcase text-brand-400"></i> Project Portfolio
+                                </h3>
+                                <button class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded text-xs font-bold transition-colors">
+                                    <i class="fa-solid fa-plus mr-1"></i> Add Project
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <!-- Card 1: Grub Vision -->
+                                <div class="bg-dark-card border border-brand-500/50 rounded-lg p-5 relative group hover:border-brand-500 transition-all">
+                                    <div class="absolute top-3 right-3">
+                                        <span class="w-2 h-2 rounded-full bg-green-500 block shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                                    </div>
+                                    <div class="w-10 h-10 rounded bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white font-bold mb-4 text-sm">GV</div>
+                                    <h4 class="font-bold text-white mb-1">Grub Vision</h4>
+                                    <p class="text-xs text-gray-400 mb-4 h-8 line-clamp-2">Instant food delivery service with a bold, spicy brand voice.</p>
+                                    <div class="flex items-center justify-between text-xs border-t border-dark-border pt-3">
+                                        <span class="text-gray-500">14 Agents Active</span>
+                                        <button onclick="openProjectDetails('Grub Vision')" class="text-brand-400 hover:text-white font-medium">Manage</button>
+                                    </div>
+                                </div>
+
+                                <!-- Card 2: LM Game Arena -->
+                                <div class="bg-dark-card border border-dark-border rounded-lg p-5 relative group hover:border-gray-500 transition-all">
+                                    <div class="absolute top-3 right-3">
+                                        <span class="w-2 h-2 rounded-full bg-yellow-500 block"></span>
+                                    </div>
+                                    <div class="w-10 h-10 rounded bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold mb-4 text-sm">LM</div>
+                                    <h4 class="font-bold text-white mb-1">LM Game Arena</h4>
+                                    <p class="text-xs text-gray-400 mb-4 h-8 line-clamp-2">AI-powered esports tournament platform.</p>
+                                    <div class="flex items-center justify-between text-xs border-t border-dark-border pt-3">
+                                        <span class="text-gray-500">Paused</span>
+                                        <button onclick="openProjectDetails('LM Game Arena')" class="text-gray-400 hover:text-white font-medium">Manage</button>
+                                    </div>
+                                </div>
+
+                                <!-- Card 3: Add New Placeholder -->
+                                <button class="border border-dashed border-gray-700 rounded-lg p-5 flex flex-col items-center justify-center text-gray-500 hover:border-brand-500 hover:text-brand-400 transition-all group h-full min-h-[160px]">
+                                    <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mb-3 group-hover:bg-brand-500/10 transition-colors">
+                                        <i class="fa-solid fa-plus text-lg"></i>
+                                    </div>
+                                    <span class="text-sm font-medium">Create New Project</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Integrations -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                    <i class="fa-solid fa-plug text-brand-400"></i> Integrations
+                                </h3>
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between p-3 bg-dark-card border border-dark-border rounded-lg">
+                                        <div class="flex items-center gap-3">
+                                            <i class="fa-brands fa-twitter text-blue-400 text-lg"></i>
+                                            <div>
+                                                <div class="text-sm font-bold text-white">X (Twitter)</div>
+                                                <div class="text-[10px] text-gray-500">Connected as @GrubVision</div>
+                                            </div>
+                                        </div>
+                                        <span class="text-green-400 text-xs"><i class="fa-solid fa-check-circle"></i> Active</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-dark-card border border-dark-border rounded-lg">
+                                        <div class="flex items-center gap-3">
+                                            <i class="fa-brands fa-tiktok text-pink-500 text-lg"></i>
+                                            <div>
+                                                <div class="text-sm font-bold text-white">TikTok</div>
+                                                <div class="text-[10px] text-gray-500">Connected as @GrubVisionOfficial</div>
+                                            </div>
+                                        </div>
+                                        <span class="text-green-400 text-xs"><i class="fa-solid fa-check-circle"></i> Active</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 bg-dark-card border border-dark-border rounded-lg opacity-75">
+                                        <div class="flex items-center gap-3">
+                                            <i class="fa-brands fa-stripe text-indigo-400 text-lg"></i>
+                                            <div>
+                                                <div class="text-sm font-bold text-white">Stripe</div>
+                                                <div class="text-[10px] text-gray-500">For Revenue Tracking</div>
+                                            </div>
+                                        </div>
+                                        <button class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-[10px] rounded">Connect</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preferences -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                    <i class="fa-solid fa-sliders text-brand-400"></i> Preferences
+                                </h3>
+                                <div class="space-y-5">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="text-sm font-bold text-white">Daily Digest</div>
+                                            <div class="text-[10px] text-gray-500">Email summary of all AI actions at 8 AM.</div>
+                                        </div>
+                                        <div class="w-10 h-5 bg-brand-600 rounded-full relative cursor-pointer">
+                                            <div class="w-3 h-3 bg-white rounded-full absolute top-1 right-1 shadow-sm"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="text-sm font-bold text-white">High Risk Alerts</div>
+                                            <div class="text-[10px] text-gray-500">Instant SMS if QA blocks content.</div>
+                                        </div>
+                                        <div class="w-10 h-5 bg-brand-600 rounded-full relative cursor-pointer">
+                                            <div class="w-3 h-3 bg-white rounded-full absolute top-1 right-1 shadow-sm"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="text-sm font-bold text-white">Dark Mode</div>
+                                            <div class="text-[10px] text-gray-500">Always active in Command Center.</div>
+                                        </div>
+                                        <div class="w-10 h-5 bg-gray-700 rounded-full relative cursor-not-allowed opacity-50">
+                                            <div class="w-3 h-3 bg-gray-400 rounded-full absolute top-1 right-1"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: PROJECT DETAILS (NEW) -->
+                <section id="view-project-details" class="view-section hidden pb-20">
+                    <div class="max-w-4xl mx-auto">
+                        <!-- Header / Back -->
+                        <div class="flex items-center gap-4 mb-8">
+                            <button onclick="switchView('view-settings')" class="text-gray-400 hover:text-white transition-colors">
+                                <i class="fa-solid fa-arrow-left"></i> Back
+                            </button>
+                            <div class="h-6 w-px bg-gray-700"></div>
+                            <h2 class="text-2xl font-bold text-white" id="project-details-title">Grub Vision</h2>
+                            <span class="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/30 rounded text-xs">Active</span>
+                        </div>
+
+                        <div class="grid gap-8">
+                            <!-- Context Injection -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                    <i class="fa-solid fa-microchip text-brand-400"></i> Context Injection
+                                </h3>
+                                <div class="grid gap-6">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Primary Mission (Internal Prompt)</label>
+                                        <textarea class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white text-sm focus:border-brand-500 focus:outline-none" rows="3">Establish Grub Vision as the #1 spicy food delivery option in Austin. Be bold, slightly reverence, but never rude.</textarea>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Core KPI Goal</label>
+                                            <select class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white text-sm focus:border-brand-500 focus:outline-none">
+                                                <option>Maximize Revenue</option>
+                                                <option>Maximize Signups</option>
+                                                <option>Brand Awareness (Views)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Product URL</label>
+                                            <input type="text" value="https://grubvision.com/order" class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white text-sm focus:border-brand-500 focus:outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Agent Staffing -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                    <i class="fa-solid fa-users text-brand-400"></i> Project Staffing
+                                </h3>
+                                <div class="space-y-4">
+                                    <!-- Agent Toggle 1 -->
+                                    <div class="flex items-center justify-between p-3 bg-dark-card border border-dark-border rounded-lg">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-green-700 flex items-center justify-center font-bold text-white text-xs">H</div>
+                                            <div>
+                                                <div class="text-sm font-bold text-white">Hunter (Events)</div>
+                                                <div class="text-[10px] text-gray-500">Scouts local events for outreach.</div>
+                                            </div>
+                                        </div>
+                                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                            <input type="checkbox" name="toggle" id="toggle-hunter" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer" checked/>
+                                            <label for="toggle-hunter" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer"></label>
+                                        </div>
+                                    </div>
+                                    <!-- Agent Toggle 2 -->
+                                    <div class="flex items-center justify-between p-3 bg-dark-card border border-dark-border rounded-lg">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center font-bold text-white text-xs">M</div>
+                                            <div>
+                                                <div class="text-sm font-bold text-white">Marcus (Creative)</div>
+                                                <div class="text-[10px] text-gray-500">Writes Copy & Scripts.</div>
+                                            </div>
+                                        </div>
+                                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                            <input type="checkbox" name="toggle" id="toggle-marcus" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer" checked/>
+                                            <label for="toggle-marcus" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer"></label>
+                                        </div>
+                                    </div>
+                                    <!-- Agent Toggle 3 -->
+                                    <div class="flex items-center justify-between p-3 bg-dark-card border border-dark-border rounded-lg">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-purple-900 flex items-center justify-center font-bold text-white text-xs">D</div>
+                                            <div>
+                                                <div class="text-sm font-bold text-white">Director X (Video)</div>
+                                                <div class="text-[10px] text-gray-500">Generates TikTok Video Ideas.</div>
+                                            </div>
+                                        </div>
+                                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                            <input type="checkbox" name="toggle" id="toggle-video" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                            <label for="toggle-video" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer"></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Brand Assets -->
+                            <div class="glass-panel p-6 rounded-xl">
+                                <h3 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                    <i class="fa-solid fa-folder-open text-brand-400"></i> Brand Assets
+                                </h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="border border-dashed border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center text-gray-500 hover:border-brand-500 hover:text-brand-400 transition-colors cursor-pointer">
+                                        <i class="fa-solid fa-cloud-arrow-up text-2xl mb-2"></i>
+                                        <span class="text-xs">Upload Logo (SVG/PNG)</span>
+                                    </div>
+                                    <div class="border border-dashed border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center text-gray-500 hover:border-brand-500 hover:text-brand-400 transition-colors cursor-pointer">
+                                        <i class="fa-solid fa-file-pdf text-2xl mb-2"></i>
+                                        <span class="text-xs">Upload Style Guide (PDF)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Danger Zone -->
+                            <div class="border border-red-900/50 rounded-xl p-6 bg-red-900/10">
+                                <h3 class="text-lg font-bold text-red-500 mb-2">Danger Zone</h3>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs text-gray-400">This will pause all agents and archive project data.</p>
+                                    <button class="px-4 py-2 border border-red-500 text-red-500 rounded text-xs font-bold hover:bg-red-500 hover:text-white transition-colors">Archive Project</button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: ORCHESTRATION (UPDATED) -->
+                <section id="view-orchestration" class="view-section hidden pb-20">
+                    <!-- Header -->
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-white mb-2">System Orchestration</h2>
+                        <p class="text-gray-400">Real-time visualization of multi-agent workflows and bidirectional data loops.</p>
+                    </div>
+
+                    <!-- Top: Agent Graph (SVG + Divs) -->
+                    <div class="glass-panel p-6 rounded-xl mb-8 relative overflow-hidden h-[500px] border border-gray-800 bg-[#0B0C10]">
+                        <h3 class="absolute top-6 left-6 text-sm font-bold text-gray-500 uppercase z-10">Live Topology</h3>
+                        
+                        <!-- Graph Container -->
+                        <div class="relative w-full h-full" id="orchestration-graph">
+                            <!-- SVG Lines (Background) -->
+                            <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <!-- Define markers -->
+                                <defs>
+                                    <marker id="arrow-head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                        <polygon points="0 0, 10 3.5, 0 7" fill="#4b5563" />
+                                    </marker>
+                                    <marker id="arrow-tail" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                        <polygon points="10 0, 0 3.5, 10 7" fill="#4b5563" />
+                                    </marker>
+                                </defs>
+                                
+                                <!-- Static connections (Two-way paths) -->
+                                <!-- Client (50,15) <-> PM (50,30) -->
+                                <path id="path-client-pm" d="M 50 15 L 50 28" stroke="#4b5563" stroke-width="0.5" marker-end="url(#arrow-head)" marker-start="url(#arrow-tail)" />
+                                
+                                <!-- PM (50,38) <-> Creative (25,60) -->
+                                <path id="path-pm-creative" d="M 48 40 L 27 58" stroke="#4b5563" stroke-width="0.5" marker-end="url(#arrow-head)" marker-start="url(#arrow-tail)" />
+                                
+                                <!-- PM (50,38) <-> Events (75,60) -->
+                                <path id="path-pm-events" d="M 52 40 L 73 58" stroke="#4b5563" stroke-width="0.5" marker-end="url(#arrow-head)" marker-start="url(#arrow-tail)" />
+                                
+                                <!-- Creative (25,70) <-> QA (50,85) -->
+                                <path id="path-creative-qa" d="M 27 72 L 48 83" stroke="#4b5563" stroke-width="0.5" marker-end="url(#arrow-head)" marker-start="url(#arrow-tail)" />
+                                
+                                <!-- Events (75,70) <-> QA (50,85) -->
+                                <path id="path-events-qa" d="M 73 72 L 52 83" stroke="#4b5563" stroke-width="0.5" marker-end="url(#arrow-head)" marker-start="url(#arrow-tail)" />
+
+                                <!-- Animation Dots (Data Packets) -->
+                                <!-- Client -> PM (Blue) -->
+                                <circle r="1" fill="#38bdf8">
+                                    <animateMotion repeatCount="indefinite" dur="3s" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+                                        <mpath href="#path-client-pm"/>
+                                    </animateMotion>
+                                </circle>
+                                <!-- PM -> Client (Purple - Feedback) -->
+                                <circle r="1" fill="#c084fc">
+                                    <animateMotion repeatCount="indefinite" dur="4s" keyPoints="1;0" keyTimes="0;1" calcMode="linear">
+                                        <mpath href="#path-client-pm"/>
+                                    </animateMotion>
+                                </circle>
+
+                                <!-- PM -> Creative (Blue) -->
+                                <circle r="1" fill="#38bdf8">
+                                    <animateMotion repeatCount="indefinite" dur="2.5s" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+                                        <mpath href="#path-pm-creative"/>
+                                    </animateMotion>
+                                </circle>
+                                <!-- Creative -> PM (Purple) -->
+                                <circle r="1" fill="#c084fc">
+                                    <animateMotion repeatCount="indefinite" dur="3.5s" keyPoints="1;0" keyTimes="0;1" calcMode="linear">
+                                        <mpath href="#path-pm-creative"/>
+                                    </animateMotion>
+                                </circle>
+
+                                <!-- PM -> Events (Blue) -->
+                                <circle r="1" fill="#38bdf8">
+                                    <animateMotion repeatCount="indefinite" dur="5s" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+                                        <mpath href="#path-pm-events"/>
+                                    </animateMotion>
+                                </circle>
+                                
+                                <!-- Creative -> QA (Blue) -->
+                                <circle r="1" fill="#38bdf8">
+                                    <animateMotion repeatCount="indefinite" dur="2s" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+                                        <mpath href="#path-creative-qa"/>
+                                    </animateMotion>
+                                </circle>
+                                <!-- QA -> Creative (Red - Rejection) -->
+                                <circle r="1" fill="#ef4444">
+                                    <animateMotion repeatCount="indefinite" dur="6s" keyPoints="1;0" keyTimes="0;1" calcMode="linear">
+                                        <mpath href="#path-creative-qa"/>
+                                    </animateMotion>
+                                </circle>
+                            </svg>
+
+                            <!-- Nodes -->
+                            <!-- Client -->
+                            <div class="absolute top-[5%] left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
+                                <div class="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center font-bold shadow-lg shadow-white/20">You</div>
+                                <div class="mt-2 text-xs text-gray-400 bg-black/50 px-2 py-1 rounded">Client Input</div>
+                            </div>
+
+                            <!-- PM (Elena) -->
+                            <div class="absolute top-[30%] left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
+                                <div class="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold border-4 border-dark-bg shadow-xl shadow-blue-500/20 agent-pulse">E</div>
+                                <div class="mt-2 text-xs font-bold text-blue-400">Elena (PM)</div>
+                                <div class="text-[10px] text-gray-500 bg-black/50 px-2 rounded mt-1">Orchestrator</div>
+                            </div>
+
+                            <!-- Creative (Marcus) -->
+                            <div class="absolute top-[60%] left-[25%] -translate-x-1/2 flex flex-col items-center z-20">
+                                <div class="w-14 h-14 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold border-4 border-dark-bg">M</div>
+                                <div class="mt-2 text-xs font-bold text-purple-400">Marcus</div>
+                                <div class="text-[10px] text-gray-500 bg-black/50 px-2 rounded mt-1">Creative Gen</div>
+                            </div>
+
+                            <!-- Events (Hunter) -->
+                            <div class="absolute top-[60%] left-[75%] -translate-x-1/2 flex flex-col items-center z-20">
+                                <div class="w-14 h-14 rounded-full bg-green-600 text-white flex items-center justify-center font-bold border-4 border-dark-bg">H</div>
+                                <div class="mt-2 text-xs font-bold text-green-400">Hunter</div>
+                                <div class="text-[10px] text-gray-500 bg-black/50 px-2 rounded mt-1">Scout</div>
+                            </div>
+
+                            <!-- QA (Sentinel) -->
+                            <div class="absolute top-[85%] left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
+                                <div class="w-14 h-14 rounded-full bg-red-600 text-white flex items-center justify-center font-bold border-4 border-dark-bg">S</div>
+                                <div class="mt-2 text-xs font-bold text-red-400">Sentinel</div>
+                                <div class="text-[10px] text-gray-500 bg-black/50 px-2 rounded mt-1">Safety Gate</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Job Queue -->
+                        <div class="glass-panel p-6 rounded-xl">
+                            <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-list-ol text-brand-400"></i> Active Job Queue
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="bg-dark-card border border-dark-border p-3 rounded flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm text-white font-mono">JOB-492: Generate Image</div>
+                                        <div class="text-[10px] text-gray-500">Assignee: Nano • Priority: High</div>
+                                    </div>
+                                    <span class="text-yellow-400 text-xs animate-pulse">Processing...</span>
+                                </div>
+                                <div class="bg-dark-card border border-dark-border p-3 rounded flex items-center justify-between opacity-75">
+                                    <div>
+                                        <div class="text-sm text-white font-mono">JOB-493: Fact Check</div>
+                                        <div class="text-[10px] text-gray-500">Assignee: Sentinel • Priority: Normal</div>
+                                    </div>
+                                    <span class="text-gray-400 text-xs">Queued</span>
+                                </div>
+                                <div class="bg-dark-card border border-dark-border p-3 rounded flex items-center justify-between opacity-75">
+                                    <div>
+                                        <div class="text-sm text-white font-mono">JOB-494: Event Crawl</div>
+                                        <div class="text-[10px] text-gray-500">Assignee: Hunter • Priority: Low</div>
+                                    </div>
+                                    <span class="text-gray-400 text-xs">Scheduled (14m)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Execution Trace -->
+                        <div class="glass-panel p-6 rounded-xl">
+                            <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-code-branch text-brand-400"></i> Execution Trace (Latest)
+                            </h3>
+                            <div class="relative pl-4 border-l border-gray-800 space-y-6">
+                                <!-- Step 1 -->
+                                <div class="relative">
+                                    <div class="absolute -left-[21px] top-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-dark-bg"></div>
+                                    <div class="text-xs text-gray-500 font-mono mb-1">10:42:01.200</div>
+                                    <div class="text-sm text-white">Client Input received</div>
+                                    <div class="text-[10px] text-gray-400 bg-white/5 p-2 rounded mt-1 font-mono">"Push the spicy bowl..."</div>
+                                </div>
+                                <!-- Step 2 -->
+                                <div class="relative">
+                                    <div class="absolute -left-[21px] top-1 w-3 h-3 bg-purple-500 rounded-full border-2 border-dark-bg"></div>
+                                    <div class="text-xs text-gray-500 font-mono mb-1">10:42:02.050</div>
+                                    <div class="text-sm text-white">Elena decomposes task</div>
+                                    <div class="text-[10px] text-gray-400 bg-white/5 p-2 rounded mt-1 font-mono">-> Subtask: Copy (Marcus)<br>-> Subtask: Image (Nano)</div>
+                                </div>
+                                <!-- Step 3 -->
+                                <div class="relative">
+                                    <div class="absolute -left-[21px] top-1 w-3 h-3 bg-green-500 rounded-full border-2 border-dark-bg"></div>
+                                    <div class="text-xs text-gray-500 font-mono mb-1">10:42:05.100</div>
+                                    <div class="text-sm text-white">Marcus drafts content</div>
+                                    <div class="text-[10px] text-gray-400 bg-white/5 p-2 rounded mt-1 font-mono">Status: Awaiting Review</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="bg-dark-card border border-dark-border rounded-xl p-6 w-full max-w-md shadow-2xl transform transition-all scale-100">
+            <h3 class="text-lg font-bold text-white mb-4">Redirect Agent</h3>
+            <p class="text-sm text-gray-400 mb-4">
+                Help the AI learn. Why is this content being rejected?
+            </p>
+            
+            <div class="space-y-3 mb-6">
+                <label class="flex items-center gap-3 p-3 border border-dark-border rounded cursor-pointer hover:bg-white/5">
+                    <input type="radio" name="reason" class="text-brand-500 focus:ring-brand-500 bg-gray-800 border-gray-600">
+                    <span class="text-gray-300">Off Brand Voice</span>
+                </label>
+                <label class="flex items-center gap-3 p-3 border border-dark-border rounded cursor-pointer hover:bg-white/5">
+                    <input type="radio" name="reason" class="text-brand-500 focus:ring-brand-500 bg-gray-800 border-gray-600">
+                    <span class="text-gray-300">Factually Incorrect</span>
+                </label>
+                <label class="flex items-center gap-3 p-3 border border-dark-border rounded cursor-pointer hover:bg-white/5">
+                    <input type="radio" name="reason" class="text-brand-500 focus:ring-brand-500 bg-gray-800 border-gray-600">
+                    <span class="text-gray-300">Visuals Don't Match</span>
+                </label>
+            </div>
+
+            <textarea class="w-full bg-black/30 border border-dark-border rounded p-3 text-white text-sm focus:border-brand-500 focus:outline-none mb-4" rows="3" placeholder="Additional guidance (optional)..."></textarea>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="document.getElementById('rejectModal').classList.add('hidden')" class="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
+                <button onclick="document.getElementById('rejectModal').classList.add('hidden'); alert('Feedback logged. Agents are re-generating.')" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold">Submit Feedback</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Navigation Logic ---
+        function switchView(viewId) {
+            // Hide all sections
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            
+            // Show target
+            const target = document.getElementById(viewId);
+            if (target) {
+                target.classList.remove('hidden');
+            } else {
+                console.error(`Error: View with ID '${viewId}' not found.`);
+                return; // Prevent crash
+            }
+            
+            // Reset Nav Styles
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-brand-500/10', 'border-brand-500', 'text-white');
+                el.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-white/5', 'border-transparent');
+            });
+            
+            // Highlight Active Nav
+            const activeNav = document.querySelector(`button[data-target="${viewId}"]`);
+            if(activeNav) {
+                activeNav.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-white/5', 'border-transparent');
+                activeNav.classList.add('bg-brand-500/10', 'border-brand-500', 'text-white');
+            }
+
+            // Update Header Title
+            const titles = {
+                'view-dashboard': 'Command Center',
+                'view-chat': 'Case Manager',
+                'view-team': 'Workforce Status',
+                'view-approvals': 'Content Approvals',
+                'view-events': 'Event Scout',
+                'view-growth': 'Growth & ROI',
+                'view-brand': 'Brand Bible',
+                'view-billing': 'Billing & Invoices',
+                'view-settings': 'Global Settings',
+                'view-project-details': 'Project Configuration',
+                'view-orchestration': 'System Orchestration'
+            };
+            document.getElementById('page-title').innerText = titles[viewId] || 'Dashboard';
+        }
+
+        // --- Project Details Logic ---
+        function openProjectDetails(projectName) {
+            // Populate data (Mock)
+            document.getElementById('project-details-title').innerText = projectName;
+            
+            // Switch view
+            switchView('view-project-details');
+        }
+
+        // --- Chat Logic ---
+        function handleChat(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const history = document.getElementById('chatHistory');
+            const text = input.value;
+            if(!text) return;
+
+            // Add User Message
+            const userDiv = document.createElement('div');
+            userDiv.className = 'chat-bubble user';
+            userDiv.innerText = text;
+            history.appendChild(userDiv);
+
+            input.value = '';
+            history.scrollTop = history.scrollHeight;
+
+            // Simulate AI Delay
+            setTimeout(() => {
+                const aiContainer = document.createElement('div');
+                aiContainer.className = 'flex gap-3 max-w-[85%]';
+                aiContainer.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mt-1">E</div>
+                    <div class="space-y-2">
+                        <div class="chat-bubble ai">
+                            On it. I'm routing this request now.
+                        </div>
+                        <div class="bg-dark-card border border-dark-border rounded p-3 text-xs font-mono text-gray-400 animate-pulse">
+                            <div class="flex items-center gap-2 mb-1 text-blue-400 font-bold"><i class="fa-solid fa-share-nodes"></i> Routing...</div>
+                        </div>
+                    </div>
+                `;
+                history.appendChild(aiContainer);
+                history.scrollTop = history.scrollHeight;
+            }, 800);
+        }
+
+        // --- Kill Switch Logic ---
+        let isKilled = false;
+        function toggleKillSwitch() {
+            const btn = document.getElementById('killSwitchBtn');
+            const dot = btn.querySelector('.w-2');
+            
+            isKilled = !isKilled;
+            
+            if (isKilled) {
+                btn.classList.add('bg-red-500', 'text-white');
+                btn.classList.remove('bg-red-500/10', 'text-red-500');
+                btn.querySelector('span').innerText = 'SYSTEM PAUSED';
+                dot.classList.remove('animate-pulse', 'bg-red-500');
+                dot.classList.add('bg-white');
+                alert('EMERGENCY STOP: All queues paused. No new content will be generated.');
+            } else {
+                btn.classList.remove('bg-red-500', 'text-white');
+                btn.classList.add('bg-red-500/10', 'text-red-500');
+                btn.querySelector('span').innerText = 'Global Kill Switch';
+                dot.classList.add('animate-pulse', 'bg-red-500');
+                dot.classList.remove('bg-white');
+            }
+        }
+
+        // --- Chart Initialization ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mini Chart for Dashboard
+            initGrowthChart('growthChart');
+            // Detailed Chart for Growth Page
+            initGrowthChart('growthDetailChart');
+        });
+
+        function initGrowthChart(canvasId) {
+            const ctx = document.getElementById(canvasId);
+            if(!ctx) return;
+            
+            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 160);
+            gradient.addColorStop(0, 'rgba(14, 165, 233, 0.4)');
+            gradient.addColorStop(1, 'rgba(14, 165, 233, 0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['W1', 'W2', 'W3', 'W4'],
+                    datasets: [{
+                        label: 'Active Users',
+                        data: [8500, 9200, 10800, 12400],
+                        borderColor: '#0ea5e9',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#0B0C10',
+                        pointBorderColor: '#0ea5e9',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { display: false, grid: { display: false } },
+                        x: { grid: { display: false, color: '#333' }, ticks: { color: '#666', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

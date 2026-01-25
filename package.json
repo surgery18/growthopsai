@@ -39,6 +39,6 @@
 		"vite-plugin-vue-devtools": "^8.0.5",
 		"vite-tsconfig-paths": "^6.0.4",
 		"vue-tsc": "^3.2.2",
-		"wrangler": "^4.35.0"
+		"wrangler": "^4.60.0"
 	}
 }

@@ -1,4 +1,5 @@
 import { Hono } from "hono"
+import { getCookie, setCookie } from "hono/cookie"
 import { GrowthOpsWorkflow } from "./workflow"
 import { IntakeWorkflow } from "./intake_workflow"
 import { EventScoutWorkflow } from "./event_scout_workflow"
@@ -9,8 +10,100 @@ import {
 	syncProjectKnowledgeFromIntake,
 } from "./knowledge"
 import type { KnowledgeContextType, KnowledgeTaskType } from "./knowledge"
+import { AuthService } from "./services/auth"
 
 const app = new Hono<{ Bindings: Env }>()
+
+// Middleware: Read-Only Mode with Admin Bypass
+app.use("*", async (c, next) => {
+	// Allow Admin Login bypass check
+	if (
+		c.req.path === "/api/auth/send-code" ||
+		c.req.path === "/api/auth/login"
+	) {
+		return await next()
+	}
+
+	if (c.env.READ_ONLY_MODE === "true") {
+		const adminCookie = getCookie(c, "admin_session")
+		const isAdmin = adminCookie && adminCookie === c.env.ADMIN_SECRET
+
+		if (!isAdmin && ["POST", "PUT", "DELETE", "PATCH"].includes(c.req.method)) {
+			return c.json(
+				{
+					error: "Read-Only Mode",
+					message: "This demo is read-only. Login as Admin to bypass.",
+				},
+				403,
+			)
+		}
+	}
+	await next()
+})
+
+// ==========================================
+// ADMIN API (2FA)
+// ==========================================
+
+// Step 1: Send OTP
+app.post("/api/auth/send-code", async (c) => {
+	const { email } = await c.req.json<{ email: string }>()
+	if (!email) return c.json({ error: "Email is required" }, 400)
+
+	const authService = new AuthService(c.env)
+	const result = await authService.generateOTP(email)
+
+	if (!result.success) {
+		// Generic error or specific if permitted
+		return c.json({ error: result.error || "Failed to send code" }, 403)
+	}
+
+	return c.json({ success: true, message: "Code sent" })
+})
+
+// Step 2: Verify OTP
+app.post("/api/auth/login", async (c) => {
+	const { email, code } = await c.req.json<{ email: string; code: string }>()
+
+	if (!email || !code) return c.json({ error: "Missing data" }, 400)
+
+	const authService = new AuthService(c.env)
+	const isValid = await authService.verifyOTP(email, code)
+
+	if (!isValid) {
+		return c.json({ error: "Invalid or expired code" }, 401)
+	}
+
+	// Set Admin Session
+	// Use a strong secret for the session if possible, but reusing the password isn't an option anymore.
+	// We'll just set a signed "true" or the email signature.
+	// For simplicity in this demo, we match the existing verify middleware:
+	// "const isAdmin = adminCookie && adminCookie === c.env.ADMIN_SECRET"
+	// So we MUST set it to ADMIN_SECRET.
+	setCookie(c, "admin_session", c.env.ADMIN_SECRET || "fallback_secret", {
+		httpOnly: true,
+		secure: true,
+		sameSite: "Strict",
+		path: "/",
+		maxAge: 60 * 60 * 24, // 1 day
+	})
+
+	return c.json({ success: true, user: { email } })
+})
+
+// Step 3: Logout
+app.post("/api/auth/logout", async (c) => {
+	setCookie(c, "admin_session", "", { maxAge: 0, path: "/" })
+	return c.json({ success: true })
+})
+
+// Step 4: Check Session
+app.get("/api/auth/session", (c) => {
+	const adminCookie = getCookie(c, "admin_session")
+	const isAdmin =
+		!!adminCookie && adminCookie === (c.env.ADMIN_SECRET || "fallback_secret")
+	return c.json({ authenticated: isAdmin })
+})
 
 // ==========================================
 // PUBLISHING STUDIO API
@@ -199,10 +292,7 @@ app.post("/api/chat", async (c) => {
 		.first<{ id: number; status: string }>()
 	const status = campaignStatus?.status?.toUpperCase()
 	if (status && lockedStatuses.has(status)) {
-		return c.json(
-			{ error: "Campaign already closed.", status },
-			409,
-		)
+		return c.json({ error: "Campaign already closed.", status }, 409)
 	}
 	if (campaignStatus?.id) {
 		const totalPosts = await c.env.DB.prepare(
@@ -384,12 +474,7 @@ app.post("/api/client/posts/:postId/approve", async (c) => {
 			// Prepare Publish Job (Manual Mode - No auto-run)
 			c.env.DB.prepare(
 				"INSERT INTO publish_jobs (campaign_id, post_id, version_hash, platform, status) VALUES (?, ?, ?, ?, 'PENDING')",
-			).bind(
-				post.campaign_id,
-				postId,
-				currentHash,
-				post.platform || "unknown"
-			),
+			).bind(post.campaign_id, postId, currentHash, post.platform || "unknown"),
 		])
 
 		const pendingPosts = await c.env.DB.prepare(
@@ -485,7 +570,7 @@ app.post("/api/client/posts/:postId/reject", async (c) => {
 				post.campaign_id,
 				post.id,
 				`Client rejected post #${post.id}: ${reason}`,
-				JSON.stringify({ reason, category })
+				JSON.stringify({ reason, category }),
 			)
 			.run()
 
@@ -602,16 +687,12 @@ app.post("/api/client/publish_jobs/:id/mark_published", async (c) => {
 		await db.batch([
 			// 2. Update Job Status
 			db
-				.prepare(
-					"UPDATE publish_jobs SET status = 'PUBLISHED' WHERE id = ?",
-				)
+				.prepare("UPDATE publish_jobs SET status = 'PUBLISHED' WHERE id = ?")
 				.bind(jobId),
 
 			// 3. Update Post Status
 			db
-				.prepare(
-					"UPDATE posts SET status = 'PUBLISHED' WHERE id = ?",
-				)
+				.prepare("UPDATE posts SET status = 'PUBLISHED' WHERE id = ?")
 				.bind(job.post_id),
 
 			// 4. Audit Log
@@ -710,9 +791,7 @@ app.post("/api/publish-jobs/:id/run", async (c) => {
 
 			// Update Post
 			db
-				.prepare(
-					"UPDATE posts SET status = 'PUBLISHED' WHERE id = ?",
-				)
+				.prepare("UPDATE posts SET status = 'PUBLISHED' WHERE id = ?")
 				.bind(job.post_id),
 
 			// Audit Log
@@ -884,7 +963,7 @@ app.post("/api/projects", async (c) => {
 				body.name,
 				body.industry || "Other",
 				body.website_url || null,
-				"DRAFT"
+				"DRAFT",
 			)
 			.first()
 
@@ -908,7 +987,7 @@ app.post("/api/projects", async (c) => {
 						website_url: body.website_url,
 					},
 				}),
-				actorId
+				actorId,
 			)
 			.run()
 
@@ -1521,7 +1600,7 @@ app.post("/api/projects/:projectId/files/complete-upload", async (c) => {
 			body.mime_type,
 			body.r2_key,
 			body.size_bytes,
-			actorId
+			actorId,
 		),
 
 		c.env.DB.prepare(
@@ -1590,7 +1669,7 @@ app.post("/api/projects/:projectId/event-scans", async (c) => {
 					radius: body.radius || 50,
 					location: body.location,
 					eventTypes: body.eventTypes,
-				})
+				}),
 			)
 			.run()
 
@@ -2126,9 +2205,7 @@ app.get("/api/chat/campaigns", async (c) => {
 				unapproved_count: number
 			}>()
 
-		const countsById = new Map(
-			postCounts.map((row) => [row.campaign_id, row]),
-		)
+		const countsById = new Map(postCounts.map((row) => [row.campaign_id, row]))
 		const updates: Array<{ id: number; status: string }> = []
 		const normalized = results.map((campaign) => {
 			const currentStatus = campaign.status

@@ -37,7 +37,8 @@ export abstract class BaseAgent {
 		const systemPrompt = this.getSystemPrompt()
 		const { projectId, runId, ...promptContext } = context
 		const userPrompt = JSON.stringify(promptContext, null, 2)
-		const model = "gemini-flash-lite-latest"
+		// const model = "gemini-flash-lite-latest"
+		const model = "gemini-3-flash-preview"
 
 		// Initialize Google GenAI Client
 		// @ts-ignore
@@ -185,7 +186,8 @@ export abstract class BaseAgent {
 		const systemPrompt = this.getSystemPrompt()
 		const { projectId, runId, ...promptContext } = context
 		const userPrompt = JSON.stringify(promptContext, null, 2)
-		const model = "gemini-flash-lite-latest"
+		// const model = "gemini-flash-lite-latest"
+		const model = "gemini-3-flash-preview"
 		// @ts-ignore
 		const ai = new GoogleGenAI({
 			apiKey: this.env.GOOGLE_API_KEY,

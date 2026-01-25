@@ -5,11 +5,20 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "growthopsai",
-	"compatibility_date": "2025-04-04",
+	"compatibility_date": "2025-01-24",
 	"compatibility_flags": ["nodejs_compat"],
 	"main": "./workers/app.ts",
 	"observability": {
 		"enabled": true,
+	},
+	"routes": [
+		{
+			"custom_domain": true,
+			"pattern": "growthopsai.xyz",
+		},
+	],
+	"vars": {
+		"READ_ONLY_MODE": "true",
 	},
 	"assets": {
 		"directory": "./dist",
@@ -20,7 +29,7 @@
 		{
 			"binding": "DB",
 			"database_name": "growthopsai",
-			"database_id": "123",
+			"database_id": "e9872ac6-54e0-4bf6-bd12-2a814995d18a",
 		},
 	],
 	"r2_buckets": [
@@ -33,7 +42,6 @@
 		{
 			"binding": "VECTORIZE",
 			"index_name": "growthopsai-knowledge",
-			"remote": true,
 		},
 	],
 	"durable_objects": {
@@ -44,6 +52,12 @@
 			},
 		],
 	},
+	"kv_namespaces": [
+		{
+			"binding": "KV_AUTH",
+			"id": "5927d0d4d5784de8a92026ace32e0f37",
+		},
+	],
 	"workflows": [
 		{
 			"name": "growthops-workflow",
