@@ -98,6 +98,7 @@ This will build the frontend assets and deploy the Worker.
 - `src/`: Vue 3 Frontend code
 - `workers/`: Cloudflare Worker code (API & Workflows)
 - `migrations/`: SQL migration files for D1
+- `prompt/`: Original prompts used to build this app (Fed into **GEMINI 3 PRO** on **HIGH** setting)
 - `wrangler.jsonc`: Cloudflare configuration
 
 ---
