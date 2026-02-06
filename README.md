@@ -1,7 +1,7 @@
 # GrowthOps AI
 
 > [!IMPORTANT]
-> This project was built with the help of **GEMINI 3 PRO / FLASH** using the **ANTIGRAVITY IDE**.
+> This project was built by **GEMINI 3 PRO / FLASH** using the **ANTIGRAVITY IDE**.
 
 ## Overview
 
@@ -45,6 +45,7 @@ Follow these steps to get the project up and running on your local machine.
 
 3. **Login to Cloudflare**:
    You need to be authenticated with Cloudflare to access resources like D1, R2, and AI models.
+
    ```bash
    npx wrangler login
    ```
